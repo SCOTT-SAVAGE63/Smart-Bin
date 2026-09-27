@@ -6,21 +6,33 @@ const demoAccounts = () => [
 ];
 
 function phoneClean(v){ return v.replace(/\s+/g,""); }
+
+// Supabase expects phone numbers in E.164 format (e.g. +27820000001).
+// Local South African numbers are typically entered starting with 0.
+function phoneToE164(v){
+  const cleaned = phoneClean(v);
+  if(cleaned.startsWith("+")) return cleaned;
+  if(cleaned.startsWith("0")) return "+27"+cleaned.slice(1);
+  return "+"+cleaned;
+}
+
 function message(id,text,good=false){ const e=document.getElementById(id); if(!e)return; e.textContent=text; e.className="message "+(good?"success":""); }
 
 async function doLogin(phone,password){
-  phone=phoneClean(phone);
   if(SMARTBIN_CONFIG.USE_SUPABASE){
-    const {data,error}=await supabaseClient.auth.signInWithPassword({phone,password});
+    const e164 = phoneToE164(phone);
+    const {data,error}=await supabaseClient.auth.signInWithPassword({phone:e164,password});
     if(error)throw error;
     const {data:profile,error:pError}=await supabaseClient.from("profiles").select("*").eq("id",data.user.id).single();
     if(pError)throw pError;
+    profile.points = profile.total_points;   // normalize field name for the rest of the UI
     localStorage.setItem("smartbin_profile",JSON.stringify(profile));
     return profile;
   }
-  let account=demoAccounts().find(a=>a.phone===phone&&a.password===password);
+  const cleanedPhone=phoneClean(phone);
+  let account=demoAccounts().find(a=>a.phone===cleanedPhone&&a.password===password);
   if(!account){
-    account=JSON.parse(localStorage.getItem("smartbin_demo_accounts")||"[]").find(a=>a.phone===phone&&a.password===password);
+    account=JSON.parse(localStorage.getItem("smartbin_demo_accounts")||"[]").find(a=>a.phone===cleanedPhone&&a.password===password);
   }
   if(!account)throw new Error("Incorrect phone number or password.");
   localStorage.setItem("smartbin_profile",JSON.stringify(account));
@@ -29,17 +41,19 @@ async function doLogin(phone,password){
 
 async function createAccount(account){
   if(SMARTBIN_CONFIG.USE_SUPABASE){
+    const e164 = phoneToE164(account.phone);
     const {data,error}=await supabaseClient.auth.signUp({
-      phone:account.phone,password:account.password,
-      options:{data:{title:account.title,name:account.name,role:"user"}}
+      phone:e164,password:account.password,
+      options:{data:{full_name:account.title+" "+account.name}}
     });
     if(error)throw error;
     if(!data.user)throw new Error("Account could not be created.");
     return;
   }
+  const cleanedPhone=phoneClean(account.phone);
   const list=JSON.parse(localStorage.getItem("smartbin_demo_accounts")||"[]");
-  if([...demoAccounts(),...list].some(a=>a.phone===account.phone))throw new Error("That phone number is already registered.");
-  list.push({...account,role:"user",points:0});
+  if([...demoAccounts(),...list].some(a=>a.phone===cleanedPhone))throw new Error("That phone number is already registered.");
+  list.push({...account,phone:cleanedPhone,role:"user",points:0});
   localStorage.setItem("smartbin_demo_accounts",JSON.stringify(list));
 }
 
@@ -61,10 +75,10 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(rf)rf.addEventListener("submit",async e=>{
     e.preventDefault();
     const title=document.getElementById("title").value,name=document.getElementById("name").value.trim();
-    const phone=phoneClean(document.getElementById("phone").value),password=document.getElementById("password").value,confirm=document.getElementById("confirmPassword").value;
+    const phone=document.getElementById("phone").value,password=document.getElementById("password").value,confirm=document.getElementById("confirmPassword").value;
     if(!title||!name||!phone||!password)return message("message","Please complete all fields.");
     if(password!==confirm)return message("message","The passwords do not match.");
-    if(!/^\+?[0-9]{9,15}$/.test(phone))return message("message","Please enter a valid phone number.");
+    if(!/^\+?[0-9]{9,15}$/.test(phoneClean(phone)))return message("message","Please enter a valid phone number.");
     try{await createAccount({title,name,phone,password});message("message","Account created successfully. You can now log in.","success");setTimeout(()=>location.href="index.html",900);}
     catch(err){message("message",err.message||"Could not create account.");}
   });
