@@ -7,8 +7,8 @@ const demoAccounts = () => [
 
 function phoneClean(v){ return v.replace(/\s+/g,""); }
 
-// Supabase expects phone numbers in E.164 format (e.g. +27820000001).
-// Local South African numbers are typically entered starting with 0.
+// Local South African numbers are usually typed starting with 0.
+// Convert to international format: 0821234567 -> +27821234567
 function phoneToE164(v){
   const cleaned = phoneClean(v);
   if(cleaned.startsWith("+")) return cleaned;
@@ -16,16 +16,27 @@ function phoneToE164(v){
   return "+"+cleaned;
 }
 
+// Supabase logs in with email + password (no SMS setup needed), so the
+// phone number is turned into an email-style ID: 27821234567@domain
+function phoneToEmail(v){
+  const digits = phoneToE164(v).replace("+","");
+  return digits+"@"+SMARTBIN_CONFIG.PHONE_EMAIL_DOMAIN;
+}
+
 function message(id,text,good=false){ const e=document.getElementById(id); if(!e)return; e.textContent=text; e.className="message "+(good?"success":""); }
 
 async function doLogin(phone,password){
   if(SMARTBIN_CONFIG.USE_SUPABASE){
-    const e164 = phoneToE164(phone);
-    const {data,error}=await supabaseClient.auth.signInWithPassword({phone:e164,password});
-    if(error)throw error;
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email:phoneToEmail(phone),password});
+    if(error){
+      if(/invalid login/i.test(error.message))throw new Error("Incorrect phone number or password.");
+      throw error;
+    }
     const {data:profile,error:pError}=await supabaseClient.from("profiles").select("*").eq("id",data.user.id).single();
     if(pError)throw pError;
     profile.points = profile.total_points;   // normalize field name for the rest of the UI
+    profile.title = profile.title || "";
+    profile.name = profile.full_name;
     localStorage.setItem("smartbin_profile",JSON.stringify(profile));
     return profile;
   }
@@ -41,13 +52,17 @@ async function doLogin(phone,password){
 
 async function createAccount(account){
   if(SMARTBIN_CONFIG.USE_SUPABASE){
-    const e164 = phoneToE164(account.phone);
     const {data,error}=await supabaseClient.auth.signUp({
-      phone:e164,password:account.password,
-      options:{data:{full_name:account.title+" "+account.name}}
+      email:phoneToEmail(account.phone),
+      password:account.password,
+      options:{data:{full_name:account.title+" "+account.name,phone:phoneToE164(account.phone)}}
     });
-    if(error)throw error;
+    if(error){
+      if(/already registered/i.test(error.message))throw new Error("That phone number is already registered.");
+      throw error;
+    }
     if(!data.user)throw new Error("Account could not be created.");
+    await supabaseClient.auth.signOut();   // make them log in properly after registering
     return;
   }
   const cleanedPhone=phoneClean(account.phone);
@@ -89,8 +104,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     const admin=location.pathname.endsWith("admin.html");
     if(admin&&profile.role!=="admin"){location.href="user.html";return;}
     if(!admin&&profile.role==="admin"){location.href="admin.html";return;}
-    if(document.getElementById("welcomeName"))document.getElementById("welcomeName").textContent=profile.title+" "+profile.name;
-    if(document.getElementById("userName"))document.getElementById("userName").textContent=profile.title+" "+profile.name;
+    const shownName=((profile.title?profile.title+" ":"")+profile.name).trim();
+    if(document.getElementById("welcomeName"))document.getElementById("welcomeName").textContent=shownName;
+    if(document.getElementById("userName"))document.getElementById("userName").textContent=shownName;
     if(document.getElementById("pointsBalance"))document.getElementById("pointsBalance").textContent=profile.points||0;
     if(document.getElementById("profileTitle"))document.getElementById("profileTitle").textContent=profile.title;
     if(document.getElementById("profileName"))document.getElementById("profileName").textContent=profile.name;
