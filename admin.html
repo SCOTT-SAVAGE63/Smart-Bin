@@ -1,10 +1,278 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Smart Bin | Admin</title><link rel="stylesheet" href="style.css"></head>
-<body class="dash"><header><a class="logo" href="admin.html">♻ SMART BIN <small>ADMIN</small></a><div>Administrator <button id="logoutBtn" class="logout">LOG OUT</button></div></header>
-<main><div class="welcome"><div><p class="eyebrow">ADMINISTRATION</p><h1>Smart Bin control centre</h1><p class="muted">Monitor your recycling network.</p></div><span class="pill good">● SYSTEM ONLINE</span></div>
-<section class="stats adminstats"><div><small>BIN STATUS</small><b>ONLINE</b><em>SB001 · Rustenburg</em></div><div><small>FILL LEVEL</small><b>72%</b><em>Collection not yet required</em></div><div><small>TODAY'S RECYCLING</small><b>18</b><em>sessions</em></div><div><small>POINTS ISSUED</small><b>420</b><em>today</em></div></section>
-<div class="columns"><section class="panel"><div class="heading"><h2>Bin monitoring</h2><span>SB001 · Rustenburg</span></div>
-<div class="monitor"><span>Paper compartment</span><b>AVAILABLE</b></div><div class="monitor"><span>Can compartment</span><b>AVAILABLE</b></div><div class="monitor"><span>Person sensor</span><b>ONLINE</b></div><div class="monitor"><span>Fill sensor</span><b>ONLINE</b></div><div class="monitor"><span>ESP32 camera</span><b>ONLINE</b></div></section>
-<section class="panel"><div class="heading"><h2>Administration</h2><span>Manage system</span></div><div class="adminlinks"><button>USERS</button><button>RECYCLING</button><button>REWARDS</button><button>COLLECTIONS</button><button>CAMERAS</button><button>MAINTENANCE</button></div></section></div></main>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Bin | Admin</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="dash">
+
+<header>
+  <a class="logo" href="admin.html">♻ SMART BIN <small>ADMIN</small></a>
+  <div>Administrator <button id="logoutBtn" class="logout">LOG OUT</button></div>
+</header>
+
+<main>
+
+  <div class="welcome">
+    <div>
+      <p class="eyebrow">ADMINISTRATION</p>
+      <h1>Smart Bin control centre</h1>
+      <p class="muted">Monitor your recycling network.</p>
+    </div>
+    <span class="pill good" id="systemPill">● LOADING…</span>
+  </div>
+
+  <!-- Top stat cards -->
+  <section class="stats adminstats">
+    <div>
+      <small>BIN STATUS</small>
+      <b id="binStatusValue">—</b>
+      <em id="binStatusDetail">—</em>
+    </div>
+    <div>
+      <small>PAPER FILL</small>
+      <b id="paperFillValue">—</b>
+      <em id="paperFillDetail">—</em>
+    </div>
+    <div>
+      <small>CAN FILL</small>
+      <b id="canFillValue">—</b>
+      <em id="canFillDetail">—</em>
+    </div>
+    <div>
+      <small>LAST SEEN</small>
+      <b id="lastSeenValue">—</b>
+      <em id="lastSeenDetail">—</em>
+    </div>
+  </section>
+
+  <div class="columns">
+
+    <!-- Bin monitoring panel -->
+    <section class="panel">
+      <div class="heading">
+        <h2>Bin monitoring</h2>
+        <span id="binHeader">SB001 · Rustenburg</span>
+      </div>
+
+      <div class="monitor">
+        <span>Paper compartment</span>
+        <b id="paperMon">—</b>
+      </div>
+      <div class="monitor">
+        <span>Can compartment</span>
+        <b id="canMon">—</b>
+      </div>
+      <div class="monitor">
+        <span>Bin connection</span>
+        <b id="connMon">—</b>
+      </div>
+      <div class="monitor">
+        <span>Paper fill sensor</span>
+        <b id="paperSensorMon">—</b>
+      </div>
+      <div class="monitor">
+        <span>Can fill sensor</span>
+        <b id="canSensorMon">—</b>
+      </div>
+    </section>
+
+    <!-- Alerts panel -->
+    <section class="panel">
+      <div class="heading">
+        <h2>Alerts</h2>
+        <span id="alertsCount">0 active</span>
+      </div>
+      <div id="alertsList">
+        <p class="muted" style="padding-top:15px;">Loading…</p>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Recent recycling panel -->
+  <section class="panel">
+    <div class="heading">
+      <h2>Recent recycling events</h2>
+      <span id="eventsCount">—</span>
+    </div>
+    <div id="eventsList">
+      <p class="muted" style="padding-top:15px;">Loading…</p>
+    </div>
+  </section>
+
+  <!-- Users panel -->
+  <section class="panel">
+    <div class="heading">
+      <h2>Users &amp; points</h2>
+      <span id="usersCount">—</span>
+    </div>
+    <div id="usersList">
+      <p class="muted" style="padding-top:15px;">Loading…</p>
+    </div>
+  </section>
+
+</main>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script><script src="app.js"></script></body></html>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+// =========================================================
+// ADMIN DASHBOARD — live data
+// Runs after app.js has set up supabaseClient and checked
+// that this user is an admin.
+// =========================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+  // give app.js a tick to finish its own DOMContentLoaded work
+  setTimeout(loadAdminDashboard, 100);
+});
+
+async function loadAdminDashboard() {
+  if (!supabaseClient || !SMARTBIN_CONFIG.USE_SUPABASE) return;
+
+  // ------- 1. Bin live status -------
+  const { data: bin, error: binErr } = await supabaseClient
+    .from("bins")
+    .select("bin_code, paper_fill, can_fill, paper_full, can_full, online, last_seen")
+    .eq("bin_code", SMARTBIN_CONFIG.BIN_ID)
+    .maybeSingle();
+
+  if (binErr || !bin) {
+    setText("systemPill", "● BIN NOT FOUND");
+    document.getElementById("systemPill").classList.remove("good");
+    return;
+  }
+
+  // offline check: if last_seen is >2 minutes old, treat as offline
+  const lastSeenMs = bin.last_seen ? new Date(bin.last_seen).getTime() : 0;
+  const offline = !bin.last_seen || (Date.now() - lastSeenMs) > 120000;
+  const binOnline = bin.online && !offline;
+
+  // system pill
+  const pill = document.getElementById("systemPill");
+  pill.textContent = binOnline ? "● SYSTEM ONLINE" : "● BIN OFFLINE";
+  pill.classList.toggle("good", binOnline);
+  pill.style.color = binOnline ? "" : "#ff8f8f";
+
+  // top cards
+  setText("binStatusValue", binOnline ? "ONLINE" : "OFFLINE");
+  setText("binStatusDetail", bin.bin_code + " · " + SMARTBIN_CONFIG.BIN_LOCATION);
+
+  setText("paperFillValue", bin.paper_fill + "%");
+  setText("paperFillDetail", bin.paper_full ? "Full — collection needed" : "Collection not yet required");
+
+  setText("canFillValue", bin.can_fill + "%");
+  setText("canFillDetail", bin.can_full ? "Full — collection needed" : "Collection not yet required");
+
+  const ago = timeAgo(bin.last_seen);
+  setText("lastSeenValue", ago.value);
+  setText("lastSeenDetail", ago.label);
+
+  // monitor rows
+  setText("paperMon", bin.paper_full ? "FULL" : "AVAILABLE");
+  setText("canMon",   bin.can_full   ? "FULL" : "AVAILABLE");
+  setText("connMon",  binOnline ? "ONLINE" : "OFFLINE");
+  setText("paperSensorMon", bin.paper_fill >= 0 ? "ONLINE" : "NO READING");
+  setText("canSensorMon",   bin.can_fill   >= 0 ? "ONLINE" : "NO READING");
+
+  // colours: red on full / offline
+  document.getElementById("paperMon").style.color = bin.paper_full ? "#ff8f8f" : "";
+  document.getElementById("canMon").style.color   = bin.can_full   ? "#ff8f8f" : "";
+  document.getElementById("connMon").style.color  = binOnline ? "" : "#ff8f8f";
+
+  // ------- 2. Alerts -------
+  const alerts = [];
+  if (!binOnline) alerts.push({ kind: "bad", text: "Bin is offline — last check-in was " + ago.value + " " + ago.label + "." });
+  if (bin.paper_full) alerts.push({ kind: "warn", text: "Paper compartment is full (" + bin.paper_fill + "%)." });
+  if (bin.can_full) alerts.push({ kind: "warn", text: "Can compartment is full (" + bin.can_fill + "%)." });
+  if (bin.paper_fill < 0) alerts.push({ kind: "warn", text: "Paper fill sensor is not reporting a value." });
+  if (bin.can_fill < 0) alerts.push({ kind: "warn", text: "Can fill sensor is not reporting a value." });
+  if (!alerts.length) alerts.push({ kind: "good", text: "All systems normal." });
+
+  const alertsList = document.getElementById("alertsList");
+  alertsList.replaceChildren();
+  alerts.forEach(a => {
+    const row = document.createElement("div");
+    row.className = "monitor";
+    const span = document.createElement("span");
+    span.textContent = a.text;
+    if (a.kind === "bad") span.style.color = "#ff8f8f";
+    else if (a.kind === "warn") span.style.color = "#ffce6b";
+    row.appendChild(span);
+    alertsList.appendChild(row);
+  });
+  setText("alertsCount", alerts.filter(a => a.kind !== "good").length + " active");
+
+  // ------- 3. Recent recycling events -------
+  const { data: events } = await supabaseClient
+    .from("recycling_events")
+    .select("waste_type, fill_before, fill_after, fill_increase, points_earned, created_at, bins(bin_code)")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const eventsList = document.getElementById("eventsList");
+  eventsList.replaceChildren();
+
+  if (!events || !events.length) {
+    eventsList.appendChild(el("p", "muted", "No recycling events yet."));
+    setText("eventsCount", "0 events");
+  } else {
+    events.forEach(ev => {
+      const row = el("div", "history");
+      const icon = ev.waste_type === "can" ? "🥫" : "📄";
+      row.appendChild(el("b", "", icon + " " + ev.waste_type.toUpperCase()));
+      const when = new Date(ev.created_at).toLocaleString("en-ZA", {
+        day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
+      });
+      row.appendChild(el("span", "", when + " · " + ev.fill_before + "% → " + ev.fill_after + "%"));
+      row.appendChild(el("strong", "", "+" + ev.points_earned));
+      eventsList.appendChild(row);
+    });
+    setText("eventsCount", events.length + " events");
+  }
+
+  // ------- 4. Users & points -------
+  const { data: users } = await supabaseClient
+    .from("profiles")
+    .select("full_name, phone, total_points, is_admin")
+    .order("total_points", { ascending: false })
+    .limit(20);
+
+  const usersList = document.getElementById("usersList");
+  usersList.replaceChildren();
+
+  if (!users || !users.length) {
+    usersList.appendChild(el("p", "muted", "No users yet."));
+    setText("usersCount", "0 users");
+  } else {
+    users.forEach(u => {
+      const row = el("div", "history");
+      const name = (u.full_name || "Unknown") + (u.is_admin ? "  (admin)" : "");
+      row.appendChild(el("b", "", name));
+      row.appendChild(el("span", "", u.phone || ""));
+      row.appendChild(el("strong", "", (u.total_points || 0) + " pts"));
+      usersList.appendChild(row);
+    });
+    setText("usersCount", users.length + " users");
+  }
+}
+
+// ---------- helpers ----------
+
+function timeAgo(iso) {
+  if (!iso) return { value: "never", label: "" };
+  const ms = Date.now() - new Date(iso).getTime();
+  const secs = Math.floor(ms / 1000);
+  if (secs < 60)    return { value: secs + "s",   label: "ago" };
+  if (secs < 3600)  return { value: Math.floor(secs / 60) + "m", label: "ago" };
+  if (secs < 86400) return { value: Math.floor(secs / 3600) + "h", label: "ago" };
+  return { value: Math.floor(secs / 86400) + "d", label: "ago" };
+}
+</script>
+
+</body>
+</html>
