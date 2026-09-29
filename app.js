@@ -23,7 +23,6 @@ function phoneToEmail(v){
   return digits+"@"+SMARTBIN_CONFIG.PHONE_EMAIL_DOMAIN;
 }
 
-
 const TITLES=["Mr","Mrs","Ms","Miss","Dr","Prof"];
 
 // The database stores one full_name like "Mr Test User" - split the title back out.
@@ -31,7 +30,12 @@ function normalizeProfile(row){
   const full=(row.full_name||"").trim();
   const first=full.split(" ")[0];
   const hasTitle=TITLES.includes(first);
-  return {...row,points:row.total_points,title:hasTitle?first:"",name:hasTitle?full.slice(first.length).trim():full};
+  return {
+    ...row,
+    points: row.total_points,
+    title: hasTitle ? first : "",
+    name: hasTitle ? full.slice(first.length).trim() : full
+  };
 }
 
 // +27821234567 -> 0821234567
@@ -86,7 +90,6 @@ async function createAccount(account){
   list.push({...account,phone:cleanedPhone,role:"user",points:0});
   localStorage.setItem("smartbin_demo_accounts",JSON.stringify(list));
 }
-
 
 async function loadUserDashboard(profile){
   try{
@@ -162,7 +165,6 @@ async function loadUserDashboard(profile){
   }
 }
 
-
 async function initClaimPage(){
   const token=new URLSearchParams(location.search).get("t");
   const actions=document.getElementById("claimActions");
@@ -234,8 +236,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(document.body.classList.contains("dash")){
     if(!profile){location.href="index.html";return;}
     const admin=location.pathname.endsWith("admin.html");
-    if(admin&&profile.role!=="admin"){location.href="user.html";return;}
-    if(!admin&&profile.role==="admin"){location.href="admin.html";return;}
+    const isAdmin = profile.is_admin === true || profile.role === "admin";
+    if(admin && !isAdmin){location.href="user.html";return;}
+    if(!admin && isAdmin){location.href="admin.html";return;}
     const shownName=((profile.title?profile.title+" ":"")+profile.name).trim();
     if(document.getElementById("welcomeName"))document.getElementById("welcomeName").textContent=shownName;
     if(document.getElementById("userName"))document.getElementById("userName").textContent=shownName;
