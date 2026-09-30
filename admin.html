@@ -9,7 +9,7 @@
 <body class="dash">
 
 <header>
-  <a class="logo" href="admin.html">♻ SMART BIN <small>ADMIN</small></a>
+  <a class="logo" href="admin.html"><img src="logo.jpg" alt="" class="header-logo">SMART BIN <small>ADMIN</small></a>
   <div>Administrator <button id="logoutBtn" class="logout">LOG OUT</button></div>
 </header>
 
@@ -115,15 +115,10 @@
 <script src="config.js"></script>
 <script src="app.js"></script>
 <script>
-// =========================================================
-// ADMIN DASHBOARD — live data, auto-refreshing every 5s
-// =========================================================
-
-const ADMIN_REFRESH_MS = 5000;    // refresh the page data every 5 seconds
-const OFFLINE_THRESHOLD_MS = 60000; // bin counts as offline after 60s of no check-in
+const ADMIN_REFRESH_MS = 5000;
+const OFFLINE_THRESHOLD_MS = 60000;
 
 document.addEventListener("DOMContentLoaded", () => {
-  // small delay so app.js's own DOMContentLoaded runs first
   setTimeout(() => {
     loadAdminDashboard();
     setInterval(loadAdminDashboard, ADMIN_REFRESH_MS);
@@ -133,7 +128,6 @@ document.addEventListener("DOMContentLoaded", () => {
 async function loadAdminDashboard() {
   if (!supabaseClient || !SMARTBIN_CONFIG.USE_SUPABASE) return;
 
-  // ------- 1. Bin live status -------
   const { data: bin, error: binErr } = await supabaseClient
     .from("bins")
     .select("bin_code, paper_fill, can_fill, paper_full, can_full, online, last_seen")
@@ -178,7 +172,6 @@ async function loadAdminDashboard() {
   document.getElementById("canMon").style.color   = bin.can_full   ? "#ff8f8f" : "";
   document.getElementById("connMon").style.color  = binOnline ? "" : "#ff8f8f";
 
-  // ------- 2. Alerts -------
   const alerts = [];
   if (!binOnline) alerts.push({ kind: "bad", text: "Bin is offline — last check-in was " + ago.value + " " + ago.label + "." });
   if (bin.paper_full) alerts.push({ kind: "warn", text: "Paper/Plastic compartment is full (" + bin.paper_fill + "%)." });
@@ -201,7 +194,6 @@ async function loadAdminDashboard() {
   });
   setText("alertsCount", alerts.filter(a => a.kind !== "good").length + " active");
 
-  // ------- 3. Recent recycling events -------
   const { data: events } = await supabaseClient
     .from("recycling_events")
     .select("waste_type, fill_before, fill_after, fill_increase, points_earned, created_at, bins(bin_code)")
@@ -230,7 +222,6 @@ async function loadAdminDashboard() {
     setText("eventsCount", events.length + " events");
   }
 
-  // ------- 4. Users & points -------
   const { data: users } = await supabaseClient
     .from("profiles")
     .select("full_name, phone, total_points, is_admin")
@@ -255,8 +246,6 @@ async function loadAdminDashboard() {
     setText("usersCount", users.length + " users");
   }
 }
-
-// ---------- helpers ----------
 
 function timeAgo(iso) {
   if (!iso) return { value: "never", label: "" };
