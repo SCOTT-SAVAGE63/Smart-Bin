@@ -3,12 +3,30 @@
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Smart Bin | Login</title><link rel="stylesheet" href="style.css"></head>
 <body>
 <main class="auth">
-<section class="hero"><div class="mark">♻</div><p class="eyebrow">SMART RECYCLING SYSTEM</p><h1>Recycle.<br><span>Earn.</span><br>Repeat.</h1><p>Recycle at Smart Bin SB001 in Rustenburg and earn points for rewards.</p><div class="badge"><b>SB001</b> Rustenburg</div></section>
-<section class="card"><p class="eyebrow">WELCOME BACK</p><h2>Sign in</h2><p class="muted">Log in to your Smart Bin account.</p><div id="message" class="message hidden"></div>
-<form id="loginForm"><label>Phone number</label><input id="phone" type="tel" placeholder="082 123 4567" required><label>Password</label><input id="password" type="password" placeholder="Enter your password" required><button>LOGIN</button></form>
-<div class="divider">NEW TO SMART BIN?</div><a class="secondary" href="register.html">CREATE ACCOUNT</a>
-<p class="demo">Prototype accounts: User <b>0820000001 / user123</b> · Admin <b>0820000002 / admin123</b></p>
-</section></main>
+<section class="hero">
+  <img src="logo.jpg" alt="Smart Bin logo" class="logo-img">
+  <p class="eyebrow">SMART RECYCLING SYSTEM</p>
+  <h1>Recycle.<br><span>Earn.</span><br>Repeat.</h1>
+  <p>Recycle at Smart Bin SB001 in Rustenburg and earn points for rewards.</p>
+  <div class="badge"><b>SB001</b> Rustenburg</div>
+</section>
+<section class="card">
+  <p class="eyebrow">WELCOME BACK</p>
+  <h2>Sign in</h2>
+  <p class="muted">Log in to your Smart Bin account.</p>
+  <div id="message" class="message hidden"></div>
+  <form id="loginForm">
+    <label>Phone number</label>
+    <input id="phone" type="tel" placeholder="082 123 4567" required>
+    <label>Password</label>
+    <input id="password" type="password" placeholder="Enter your password" required>
+    <button>LOGIN</button>
+  </form>
+  <div class="divider">NEW TO SMART BIN?</div>
+  <a class="secondary" href="register.html">CREATE ACCOUNT</a>
+  <p class="demo">Prototype accounts: User <b>0820000001 / user123</b> · Admin <b>0820000002 / admin123</b></p>
+</section>
+</main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script><script src="app.js"></script>
 </body></html>
