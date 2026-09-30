@@ -2,12 +2,28 @@
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Smart Bin | Create Account</title><link rel="stylesheet" href="style.css"></head>
 <body><main class="auth">
-<section class="hero"><div class="mark">♻</div><p class="eyebrow">NEW ACCOUNT</p><h1>Start<br><span>earning</span><br>today.</h1><p>Create one account and use it whenever you recycle.</p></section>
-<section class="card"><p class="eyebrow">SMART BIN ACCOUNT</p><h2>Create account</h2><p class="muted">Your account stores your points and recycling history.</p><div id="message" class="message hidden"></div>
-<form id="registerForm"><div class="two"><div><label>Title</label><select id="title" required><option value="">Select</option><option>Mr</option><option>Mrs</option><option>Ms</option><option>Mx</option></select></div><div><label>Name</label><input id="name" required placeholder="Your name"></div></div>
-<label>Phone number</label><input id="phone" type="tel" placeholder="0821234567" required>
-<label>Password</label><input id="password" type="password" minlength="6" required>
-<label>Confirm password</label><input id="confirmPassword" type="password" minlength="6" required>
-<button>CREATE ACCOUNT</button></form><p class="back"><a href="index.html">← Back to login</a></p></section></main>
+<section class="hero">
+  <img src="logo.jpg" alt="Smart Bin logo" class="logo-img">
+  <p class="eyebrow">NEW ACCOUNT</p>
+  <h1>Start<br><span>earning</span><br>today.</h1>
+  <p>Create one account and use it whenever you recycle.</p>
+</section>
+<section class="card">
+  <p class="eyebrow">SMART BIN ACCOUNT</p>
+  <h2>Create account</h2>
+  <p class="muted">Your account stores your points and recycling history.</p>
+  <div id="message" class="message hidden"></div>
+  <form id="registerForm">
+    <div class="two">
+      <div><label>Title</label><select id="title" required><option value="">Select</option><option>Mr</option><option>Mrs</option><option>Ms</option><option>Mx</option></select></div>
+      <div><label>Name</label><input id="name" required placeholder="Your name"></div>
+    </div>
+    <label>Phone number</label><input id="phone" type="tel" placeholder="0821234567" required>
+    <label>Password</label><input id="password" type="password" minlength="6" required>
+    <label>Confirm password</label><input id="confirmPassword" type="password" minlength="6" required>
+    <button>CREATE ACCOUNT</button>
+  </form>
+  <p class="back"><a href="index.html">← Back to login</a></p>
+</section></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script><script src="app.js"></script></body></html>
