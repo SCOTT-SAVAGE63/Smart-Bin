@@ -24,7 +24,6 @@
     <span class="pill good" id="systemPill">● LOADING…</span>
   </div>
 
-  <!-- Top stat cards -->
   <section class="stats adminstats">
     <div>
       <small>BIN STATUS</small>
@@ -32,7 +31,7 @@
       <em id="binStatusDetail">—</em>
     </div>
     <div>
-      <small>PAPER FILL</small>
+      <small>PAPER/PLASTIC FILL</small>
       <b id="paperFillValue">—</b>
       <em id="paperFillDetail">—</em>
     </div>
@@ -50,7 +49,6 @@
 
   <div class="columns">
 
-    <!-- Bin monitoring panel -->
     <section class="panel">
       <div class="heading">
         <h2>Bin monitoring</h2>
@@ -58,7 +56,7 @@
       </div>
 
       <div class="monitor">
-        <span>Paper compartment</span>
+        <span>Paper/Plastic compartment</span>
         <b id="paperMon">—</b>
       </div>
       <div class="monitor">
@@ -70,7 +68,7 @@
         <b id="connMon">—</b>
       </div>
       <div class="monitor">
-        <span>Paper fill sensor</span>
+        <span>Paper/Plastic fill sensor</span>
         <b id="paperSensorMon">—</b>
       </div>
       <div class="monitor">
@@ -79,7 +77,6 @@
       </div>
     </section>
 
-    <!-- Alerts panel -->
     <section class="panel">
       <div class="heading">
         <h2>Alerts</h2>
@@ -92,7 +89,6 @@
 
   </div>
 
-  <!-- Recent recycling panel -->
   <section class="panel">
     <div class="heading">
       <h2>Recent recycling events</h2>
@@ -103,7 +99,6 @@
     </div>
   </section>
 
-  <!-- Users panel -->
   <section class="panel">
     <div class="heading">
       <h2>Users &amp; points</h2>
@@ -121,14 +116,18 @@
 <script src="app.js"></script>
 <script>
 // =========================================================
-// ADMIN DASHBOARD — live data
-// Runs after app.js has set up supabaseClient and checked
-// that this user is an admin.
+// ADMIN DASHBOARD — live data, auto-refreshing every 5s
 // =========================================================
 
+const ADMIN_REFRESH_MS = 5000;    // refresh the page data every 5 seconds
+const OFFLINE_THRESHOLD_MS = 60000; // bin counts as offline after 60s of no check-in
+
 document.addEventListener("DOMContentLoaded", () => {
-  // give app.js a tick to finish its own DOMContentLoaded work
-  setTimeout(loadAdminDashboard, 100);
+  // small delay so app.js's own DOMContentLoaded runs first
+  setTimeout(() => {
+    loadAdminDashboard();
+    setInterval(loadAdminDashboard, ADMIN_REFRESH_MS);
+  }, 100);
 });
 
 async function loadAdminDashboard() {
@@ -147,18 +146,15 @@ async function loadAdminDashboard() {
     return;
   }
 
-  // offline check: if last_seen is >2 minutes old, treat as offline
   const lastSeenMs = bin.last_seen ? new Date(bin.last_seen).getTime() : 0;
-  const offline = !bin.last_seen || (Date.now() - lastSeenMs) > 120000;
+  const offline = !bin.last_seen || (Date.now() - lastSeenMs) > OFFLINE_THRESHOLD_MS;
   const binOnline = bin.online && !offline;
 
-  // system pill
   const pill = document.getElementById("systemPill");
   pill.textContent = binOnline ? "● SYSTEM ONLINE" : "● BIN OFFLINE";
   pill.classList.toggle("good", binOnline);
   pill.style.color = binOnline ? "" : "#ff8f8f";
 
-  // top cards
   setText("binStatusValue", binOnline ? "ONLINE" : "OFFLINE");
   setText("binStatusDetail", bin.bin_code + " · " + SMARTBIN_CONFIG.BIN_LOCATION);
 
@@ -172,14 +168,12 @@ async function loadAdminDashboard() {
   setText("lastSeenValue", ago.value);
   setText("lastSeenDetail", ago.label);
 
-  // monitor rows
   setText("paperMon", bin.paper_full ? "FULL" : "AVAILABLE");
   setText("canMon",   bin.can_full   ? "FULL" : "AVAILABLE");
   setText("connMon",  binOnline ? "ONLINE" : "OFFLINE");
   setText("paperSensorMon", bin.paper_fill >= 0 ? "ONLINE" : "NO READING");
   setText("canSensorMon",   bin.can_fill   >= 0 ? "ONLINE" : "NO READING");
 
-  // colours: red on full / offline
   document.getElementById("paperMon").style.color = bin.paper_full ? "#ff8f8f" : "";
   document.getElementById("canMon").style.color   = bin.can_full   ? "#ff8f8f" : "";
   document.getElementById("connMon").style.color  = binOnline ? "" : "#ff8f8f";
@@ -187,9 +181,9 @@ async function loadAdminDashboard() {
   // ------- 2. Alerts -------
   const alerts = [];
   if (!binOnline) alerts.push({ kind: "bad", text: "Bin is offline — last check-in was " + ago.value + " " + ago.label + "." });
-  if (bin.paper_full) alerts.push({ kind: "warn", text: "Paper compartment is full (" + bin.paper_fill + "%)." });
+  if (bin.paper_full) alerts.push({ kind: "warn", text: "Paper/Plastic compartment is full (" + bin.paper_fill + "%)." });
   if (bin.can_full) alerts.push({ kind: "warn", text: "Can compartment is full (" + bin.can_fill + "%)." });
-  if (bin.paper_fill < 0) alerts.push({ kind: "warn", text: "Paper fill sensor is not reporting a value." });
+  if (bin.paper_fill < 0) alerts.push({ kind: "warn", text: "Paper/Plastic fill sensor is not reporting a value." });
   if (bin.can_fill < 0) alerts.push({ kind: "warn", text: "Can fill sensor is not reporting a value." });
   if (!alerts.length) alerts.push({ kind: "good", text: "All systems normal." });
 
@@ -224,7 +218,8 @@ async function loadAdminDashboard() {
     events.forEach(ev => {
       const row = el("div", "history");
       const icon = ev.waste_type === "can" ? "🥫" : "📄";
-      row.appendChild(el("b", "", icon + " " + ev.waste_type.toUpperCase()));
+      const label = ev.waste_type === "can" ? "CAN" : "PAPER/PLASTIC";
+      row.appendChild(el("b", "", icon + " " + label));
       const when = new Date(ev.created_at).toLocaleString("en-ZA", {
         day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
       });
