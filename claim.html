@@ -1,9 +1,18 @@
 <!doctype html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Smart Bin | Claim</title><link rel="stylesheet" href="style.css"></head>
-<body><main class="claim"><section class="claim-card"><div class="mark small">♻</div><p class="eyebrow">RECYCLING SESSION</p><h1 id="claimTitle">Claim your points</h1><p class="muted" id="claimText">Checking your session...</p>
-<div class="session hidden" id="claimResult"><small id="claimLabel">POINTS ADDED</small><strong id="claimPoints">0</strong><span id="claimDetails"></span></div>
-<div id="claimActions"></div>
-<p class="demo">A recycling session expires after 15 minutes and can only be claimed once.</p>
-</section></main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<body><main class="claim"><section class="claim-card">
+  <img src="logo.jpg" alt="Smart Bin logo" class="logo-img">
+  <p class="eyebrow">RECYCLING SESSION</p>
+  <h1 id="claimTitle">Claim your points</h1>
+  <p class="muted" id="claimText">Checking your session...</p>
+  <div class="session hidden" id="claimResult">
+    <small id="claimLabel">POINTS ADDED</small>
+    <strong id="claimPoints">0</strong>
+    <span id="claimDetails"></span>
+  </div>
+  <div id="claimActions"></div>
+  <p class="demo">A recycling session expires after 15 minutes and can only be claimed once.</p>
+</section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script><script src="app.js"></script></body></html>
